@@ -3,7 +3,7 @@ import Data.Foldable(fold)
 import Data.List((\\),intercalate,group,nub,sort,transpose)
 --import Data.List.Ordered(unionAll)
 
-data LatinSquare = LatinSquare [[Box]] deriving (Show,Eq)
+type LatinSquare = [[Box]]
 
 type Box = [Int]
 
@@ -12,7 +12,7 @@ isFixed [_] = True
 isFixed  _  = False
 
 latinSize :: LatinSquare -> Int
-latinSize (LatinSquare sq) = maximum $ length sq:map length sq
+latinSize sq = maximum $ length sq:map length sq
 
 type RowConstraint = ([Int] -> Bool)
 type EdgeIdx = (Bool,Bool,Int)
@@ -37,24 +37,23 @@ towerRow vis = (==vis) . length . group . scanl1 max
 
 -- first Bool: true row, not line. second bool: direction right or up
 chooseBlock :: EdgeIdx -> LatinSquare -> [Box]
-chooseBlock (True,fromBelow,ix) (LatinSquare sq) = chooseBlock (False,fromBelow,ix) (LatinSquare (transpose sq))
+chooseBlock (True,fromBelow,ix) sq = chooseBlock (False,fromBelow,ix) (transpose sq)
 chooseBlock (False,True,ix) sq = reverse (chooseBlock (False,False,ix) sq)
-chooseBlock (False,False,ix) (LatinSquare sq) = sq !! ix
+chooseBlock (False,False,ix) sq = sq !! ix
 
 parse :: String -> LatinSquare
 parse x = let (ss:ls) = lines x
               s = read ss
-              foo = map bar ls
               bar l = map baz (take s (l++repeat ' '))
               baz ' ' = [1..s]
               baz  x  = [(read [x])]  
-           in LatinSquare foo
+           in map bar ls
 
 isSolved :: LatinSquare -> Bool
-isSolved (LatinSquare sq) = all (all isFixed) sq
+isSolved sq = all (all isFixed) sq
 
 solves :: [Step] -> LatinSquare -> LatinSquare
-solves steps ls@(LatinSquare sq) | all (\step -> applyStep step ls == ls) steps = ls
+solves steps ls | all (\step -> applyStep step ls == ls) steps = ls
 solves steps ls = solves steps (applyStep (foldl1 (.) steps) ls)
 
 type Step = [Box] -> [Box]
@@ -67,7 +66,7 @@ deletePs :: [Int] -> [Box] -> [Box]
 deletePs d = map (\\d)
 
 applyStep :: Step -> LatinSquare -> LatinSquare
-applyStep step (LatinSquare sq) = LatinSquare (transpose . map step . transpose . map step $ sq)
+applyStep step = transpose . map step . transpose . map step 
 
 permutations :: [a] -> [[a]]
 permutations [] = [[]]
@@ -116,9 +115,12 @@ extracalate :: [a] -> [[a]] -> [a]
 extracalate sep xs = sep ++ intercalate sep xs ++ sep
 
 prettyPrint :: LatinSquare -> String
-prettyPrint lsq@(LatinSquare sq) =
-    let s = latinSize lsq
+prettyPrint sq =
+    let s = latinSize sq
         boxWidth = 2*s - 1 -- (ceiling . sqrt . fromIntegral $ s)*2-1
         horline = extracalate "+" (replicate s (replicate boxWidth '-')) ++"\n"
         rows = map ((++"\n") . extracalate "|" . map (take boxWidth . (++repeat ' ') . intercalate " " . map show)) sq
-     in extracalate horline rows 
+     in extracalate horline rows
+
+applyConstraint :: Constraint -> LatinSquare -> LatinSquare
+applyConstraint (Constraint edgeIdx rowConstraint) sq = undefined
