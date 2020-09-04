@@ -17,7 +17,7 @@ latinSize sq = maximum $ length sq:map length sq
 type RowConstraint = ([Int] -> Bool)
 type TowerEdgeIdx = (Bool,Bool,Int) -- directed by middle Bool
 type EdgeIdx = (Bool,Int) -- undirected
-data Constraint = Constraint EdgeIdx RowConstraint -- +String?
+data Constraint = Constraint String EdgeIdx RowConstraint -- +String?
 
 data Edge = L | R | T | B
 
@@ -51,7 +51,7 @@ withBlock (isTranspose,ix) f =
         opttranspose . (\xs -> [ applyWhen (ix==i) f x | (i,x) <- zip [1..] xs]) . opttranspose
     where
         opttranspose = applyWhen isTranspose transpose
-
+-- the 1 in [1..] is the reason why indexes in tower start with 1, not 0
 
 parse :: String -> LatinSquare
 parse x = let (ss:ls) = lines x
@@ -92,7 +92,7 @@ example :: LatinSquare
 example = parse "3\n1\n 2\n  3"
 
 towerC :: Int -> (Bool,Bool,Int) -> Constraint
-towerC x choice@(vert,isReverse,ix) = Constraint (vert,ix) (towerRow isReverse x)
+towerC x choice@(vert,isReverse,ix) = Constraint ("tower "++show choice++show x) (vert,ix) (towerRow isReverse x)
 
 fixByConstraint :: RowConstraint -> [Box] ->  [Box]
 fixByConstraint c  =
@@ -105,12 +105,6 @@ iterateStable f x = let res = iterate f x
 
 tower :: Edge -> Int -> Int -> Constraint
 tower e idx tw = towerC tw (edge e idx)
-
-solve :: [Constraint] -> String -> [LatinSquare]
-solve cs inp = let sq = parse inp
-                   size = latinSize sq
-                   css =undefined
-                in iterateStable css sq
 
 fld :: (Traversable t, Applicative f) => (t b -> c) -> t (f b) -> (f c)
 fld combiner stuff = combiner <$> sequenceA stuff
@@ -134,6 +128,44 @@ prettyPrint sq =
         rows = map ((++"\n") . extracalate "|" . map (take boxWidth . (++repeat ' ') . intercalate " " . map show)) sq
      in extracalate horline rows
 
-applyConstraint :: Constraint -> LatinSquare -> LatinSquare
-applyConstraint (Constraint edgeIdx rowConstraint) sq = 
-     withBlock edgeIdx (fixByConstraint rowConstraint) sq
+applyConstraint :: Constraint -> (String, LatinSquare -> LatinSquare)
+applyConstraint (Constraint msg edgeIdx rowConstraint) = 
+     (msg,withBlock edgeIdx (fixByConstraint rowConstraint))
+
+applyCyclicUntilFixed :: (Eq a) => [(b,a -> a)] -> a -> [(b,a)]
+applyCyclicUntilFixed allfs oldx = go allfs oldx where
+    go [] x | x == oldx = []
+            | otherwise = applyCyclicUntilFixed allfs x
+    go ((m,f):fs) x | f_x == x  =  go fs x -- f_x hier raus, debug only!
+                | otherwise = (m,f_x) : go fs (f_x) where f_x = f x
+
+hardWith3 :: ([Constraint], LatinSquare)
+hardWith3 = ([tower L 1 2,
+              tower B 1 1,
+              tower R 3 2]++latins 3,replicate 3 . replicate 3 $ [1..3])
+
+hardWith6 :: ([Constraint], LatinSquare)
+hardWith6 =([tower L 1 2,
+             tower L 2 3,
+             tower L 3 1,
+             tower L 4 2,
+             tower T 3 3,
+             tower T 4 2,
+             tower R 2 1,
+             tower B 2 1]++latins 6, parse ("6\n"++
+                "      \n"++
+                "      \n"++
+                "   1  \n"++
+                "     3\n"++
+                "  3   \n"++
+                "      "))
+                
+
+latins :: Int -> [Constraint]
+latins n = [Constraint ("latin "++show i++if v then " vert" else " hor")  (v,i) (latinRow n) | i <- [1 .. n], v <- [False,True]]
+
+playthrough :: ([Constraint],LatinSquare) -> [(String,LatinSquare)]
+playthrough (cs,ls) = applyCyclicUntilFixed (map applyConstraint cs) ls
+
+play :: ([Constraint],LatinSquare) -> IO ()
+play game = mapM_ (\(msg,sq) -> putStrLn msg >> putStrLn (prettyPrint sq)) (playthrough game)
