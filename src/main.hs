@@ -32,14 +32,26 @@ permutePossible = filter latin . sequenceA where
 
 latinRow :: Int -> RowConstraint
 latinRow  s = (\x -> sort x==[1..s])
-towerRow :: Int -> RowConstraint
-towerRow vis = (==vis) . length . group . scanl1 max
+towerRow :: Bool -> Int -> RowConstraint
+towerRow rev vis = (==vis) . length . group . scanl1 max . applyWhen rev reverse
 
 -- first Bool: true row, not line. second bool: direction right or up
 chooseBlock :: EdgeIdx -> LatinSquare -> [Box]
 chooseBlock (True,fromBelow,ix) sq = chooseBlock (False,fromBelow,ix) (transpose sq)
-chooseBlock (False,True,ix) sq = reverse (chooseBlock (False,False,ix) sq)
-chooseBlock (False,False,ix) sq = sq !! ix
+chooseBlock (False,_,ix) sq = sq !! ix
+
+applyWhen :: Bool -> (a -> a) -> (a -> a)
+applyWhen True  f = f
+applyWhen False f = id
+
+-- lenses would be nice here
+withBlock :: EdgeIdx -> ([Box] -> [Box]) -> LatinSquare -> LatinSquare
+withBlock (isTranspose,isReverse,ix) f =
+        opttranspose . optreverse . (\xs -> [ applyWhen (ix==i) f x | (i,x) <- zip [1..] xs]) . optreverse . opttranspose
+    where
+        opttranspose = applyWhen isTranspose transpose
+        optreverse   = applyWhen isReverse   reverse
+
 
 parse :: String -> LatinSquare
 parse x = let (ss:ls) = lines x
@@ -80,7 +92,7 @@ example :: LatinSquare
 example = parse "3\n1\n 2\n  3"
 
 towerC :: Int -> (Bool,Bool,Int) -> Constraint
-towerC x choice = Constraint choice (towerRow x)
+towerC x choice@(_,isReverse,_) = Constraint choice (towerRow isReverse x)
 
 fixByConstraint :: RowConstraint -> [Box] ->  [Box]
 fixByConstraint c  =
@@ -123,4 +135,5 @@ prettyPrint sq =
      in extracalate horline rows
 
 applyConstraint :: Constraint -> LatinSquare -> LatinSquare
-applyConstraint (Constraint edgeIdx rowConstraint) sq = undefined
+applyConstraint (Constraint edgeIdx rowConstraint) sq = 
+     withBlock edgeIdx (fixByConstraint rowConstraint) sq
