@@ -1,6 +1,6 @@
 import Control.Applicative(liftA2)
 import Data.Foldable(fold)
-import Data.List((\\),group,nub,sort,transpose)
+import Data.List((\\),intercalate,group,nub,sort,transpose)
 --import Data.List.Ordered(unionAll)
 
 data LatinSquare = LatinSquare [[Box]] deriving (Show,Eq)
@@ -47,7 +47,7 @@ parse x = let (ss:ls) = lines x
               foo = map bar ls
               bar l = map baz (take s (l++repeat ' '))
               baz ' ' = [1..s]
-              baz  x  = (read [x])  
+              baz  x  = [(read [x])]  
            in LatinSquare foo
 
 isSolved :: LatinSquare -> Bool
@@ -112,4 +112,13 @@ myfld constraints x = all ($x) constraints
 -- t (f b) -> (f b) , t ~ [], b ~ Bool, f ~ (->) a
 -- (t b -> c) -> t (f b) -> (f c)
 
+extracalate :: [a] -> [[a]] -> [a]
+extracalate sep xs = sep ++ intercalate sep xs ++ sep
 
+prettyPrint :: LatinSquare -> String
+prettyPrint lsq@(LatinSquare sq) =
+    let s = latinSize lsq
+        boxWidth = 2*s - 1 -- (ceiling . sqrt . fromIntegral $ s)*2-1
+        horline = extracalate "+" (replicate s (replicate boxWidth '-')) ++"\n"
+        rows = map ((++"\n") . extracalate "|" . map (take boxWidth . (++repeat ' ') . intercalate " " . map show)) sq
+     in extracalate horline rows 
