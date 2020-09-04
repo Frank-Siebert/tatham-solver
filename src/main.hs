@@ -5,15 +5,11 @@ import Data.List((\\),group,nub,sort,transpose)
 
 data LatinSquare = LatinSquare [[Box]] deriving (Show,Eq)
 
-data Box = Fixed Int | Possible [Int] deriving (Show,Eq)
-
-box :: [Int] -> Box
-box [singleton] = Fixed singleton
-box other = Possible other
+type Box = [Int]
 
 isFixed :: Box -> Bool
-isFixed (Fixed _) = True
-isFixed (Possible _) = False
+isFixed [_] = True
+isFixed  _  = False
 
 latinSize :: LatinSquare -> Int
 latinSize (LatinSquare sq) = maximum $ length sq:map length sq
@@ -31,9 +27,7 @@ edge T x = (True ,False,x)
 edge B x = (True ,True ,x)
 
 permutePossible :: [Box] -> [[Int]]
-permutePossible = filter latin . traverse extract where
-    extract (Fixed x) = [x]
-    extract (Possible xs) = xs
+permutePossible = filter latin . sequenceA where
     latin = all (==1). map length . group . sort
 
 latinRow :: Int -> RowConstraint
@@ -52,8 +46,8 @@ parse x = let (ss:ls) = lines x
               s = read ss
               foo = map bar ls
               bar l = map baz (take s (l++repeat ' '))
-              baz ' ' = Possible [1..s]
-              baz  x  = Fixed (read [x])  
+              baz ' ' = [1..s]
+              baz  x  = (read [x])  
            in LatinSquare foo
 
 isSolved :: LatinSquare -> Bool
@@ -66,18 +60,11 @@ solves steps ls = solves steps (applyStep (foldl1 (.) steps) ls)
 type Step = [Box] -> [Box]
 deleteFixed :: Step
 deleteFixed bs = deletePs fixed bs
-   where fixed = [n | Fixed n <- bs]
-
-uniquePossible :: Step
-uniquePossible = map unique
-   where unique (Possible [singleton]) = Fixed singleton
-         unique other = other
+   where fixed = [n | [n] <- bs]
 
 -- step helper function
 deletePs :: [Int] -> [Box] -> [Box]
-deletePs d = map florp where
-   florp (Possible ps) = Possible (ps \\ d)
-   florp (other) = other
+deletePs d = map (\\d)
 
 applyStep :: Step -> LatinSquare -> LatinSquare
 applyStep step (LatinSquare sq) = LatinSquare (transpose . map step . transpose . map step $ sq)
@@ -98,7 +85,7 @@ towerC x choice = Constraint choice (towerRow x)
 
 fixByConstraint :: RowConstraint -> [Box] ->  [Box]
 fixByConstraint c  =
-     map (box . nub) . transpose . filter c . permutePossible 
+     map nub . transpose . filter c . permutePossible 
 
 iterateStable :: (Eq a) => (a -> a) -> a -> [a]
 iterateStable f x = let res = iterate f x
