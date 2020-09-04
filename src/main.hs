@@ -96,7 +96,7 @@ towerC x choice@(vert,isReverse,ix) = Constraint ("tower "++show choice++show x)
 
 fixByConstraint :: RowConstraint -> [Box] ->  [Box]
 fixByConstraint c  =
-     map nub . transpose . filter c . permutePossible 
+     map (map head . group . sort) . transpose . filter c . permutePossible 
 
 iterateStable :: (Eq a) => (a -> a) -> a -> [a]
 iterateStable f x = let res = iterate f x
