@@ -7,10 +7,6 @@ type LatinSquare = [[Box]]
 
 type Box = [Int]
 
-isFixed :: Box -> Bool
-isFixed [_] = True
-isFixed  _  = False
-
 latinSize :: LatinSquare -> Int
 latinSize sq = maximum $ length sq:map length sq
 
@@ -36,11 +32,6 @@ latinRow  s = (\x -> sort x==[1..s])
 towerRow :: Bool -> Int -> RowConstraint
 towerRow rev vis = (==vis) . length . group . scanl1 max . applyWhen rev reverse
 
--- first Bool: true row, not line. second bool WAS: direction right or up
-chooseBlock :: EdgeIdx -> LatinSquare -> [Box]
-chooseBlock (True ,ix) sq = chooseBlock (False,ix) (transpose sq)
-chooseBlock (False,ix) sq = sq !! ix
-
 applyWhen :: Bool -> (a -> a) -> (a -> a)
 applyWhen True  f = f
 applyWhen False f = id
@@ -58,27 +49,8 @@ parse x = let (ss:ls) = lines x
               s = read ss
               bar l = map baz (take s (l++repeat ' '))
               baz ' ' = [1..s]
-              baz  x  = [(read [x])]  
+              baz  x  = [(read [x])]
            in map bar ls
-
-isSolved :: LatinSquare -> Bool
-isSolved sq = all (all isFixed) sq
-
-solves :: [Step] -> LatinSquare -> LatinSquare
-solves steps ls | all (\step -> applyStep step ls == ls) steps = ls
-solves steps ls = solves steps (applyStep (foldl1 (.) steps) ls)
-
-type Step = [Box] -> [Box]
-deleteFixed :: Step
-deleteFixed bs = deletePs fixed bs
-   where fixed = [n | [n] <- bs]
-
--- step helper function
-deletePs :: [Int] -> [Box] -> [Box]
-deletePs d = map (\\d)
-
-applyStep :: Step -> LatinSquare -> LatinSquare
-applyStep step = transpose . map step . transpose . map step 
 
 permutations :: [a] -> [[a]]
 permutations [] = [[]]
@@ -96,7 +68,7 @@ towerC x choice@(vert,isReverse,ix) = Constraint ("tower "++show choice++show x)
 
 fixByConstraint :: RowConstraint -> [Box] ->  [Box]
 fixByConstraint c  =
-     map (map head . group . sort) . transpose . filter c . permutePossible 
+     map (map head . group . sort) . transpose . filter c . permutePossible
 
 iterateStable :: (Eq a) => (a -> a) -> a -> [a]
 iterateStable f x = let res = iterate f x
@@ -106,22 +78,11 @@ iterateStable f x = let res = iterate f x
 tower :: Edge -> Int -> Int -> Constraint
 tower e idx tw = towerC tw (edge e idx)
 
-fld :: (Traversable t, Applicative f) => (t b -> c) -> t (f b) -> (f c)
-fld combiner stuff = combiner <$> sequenceA stuff
-
-myfld :: [a -> Bool] -> a -> Bool
-myfld constraints x = all ($x) constraints
---myfld constraints x = fld and constraints x
-
--- [a -> Bool] -> (a -> Bool)
--- t (f b) -> (f b) , t ~ [], b ~ Bool, f ~ (->) a
--- (t b -> c) -> t (f b) -> (f c)
-
 extracalate :: [a] -> [[a]] -> [a]
 extracalate sep xs = sep ++ intercalate sep xs ++ sep
 
-prettyPrint :: LatinSquare -> String
-prettyPrint sq =
+prettify :: LatinSquare -> String
+prettify sq =
     let s = latinSize sq
         boxWidth = 2*s - 1 -- (ceiling . sqrt . fromIntegral $ s)*2-1
         horline = extracalate "+" (replicate s (replicate boxWidth '-')) ++"\n"
@@ -129,7 +90,7 @@ prettyPrint sq =
      in extracalate horline rows
 
 applyConstraint :: Constraint -> (String, LatinSquare -> LatinSquare)
-applyConstraint (Constraint msg edgeIdx rowConstraint) = 
+applyConstraint (Constraint msg edgeIdx rowConstraint) =
      (msg,withBlock edgeIdx (fixByConstraint rowConstraint))
 
 applyCyclicUntilFixed :: (Eq a) => [(b,a -> a)] -> a -> [(b,a)]
@@ -159,7 +120,7 @@ hardWith6 =([tower L 1 2,
                 "     3\n"++
                 "  3   \n"++
                 "      "))
-                
+
 
 latins :: Int -> [Constraint]
 latins n = [Constraint ("latin "++show i++if v then " vert" else " hor")  (v,i) (latinRow n) | i <- [1 .. n], v <- [False,True]]
@@ -168,4 +129,4 @@ playthrough :: ([Constraint],LatinSquare) -> [(String,LatinSquare)]
 playthrough (cs,ls) = applyCyclicUntilFixed (map applyConstraint cs) ls
 
 play :: ([Constraint],LatinSquare) -> IO ()
-play game = mapM_ (\(msg,sq) -> putStrLn msg >> putStrLn (prettyPrint sq)) (playthrough game)
+play game = mapM_ (\(msg,sq) -> putStrLn msg >> putStrLn (prettify sq)) (playthrough game)
