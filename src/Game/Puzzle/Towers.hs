@@ -47,9 +47,9 @@ withBlock (isTranspose,ix) f =
 parse :: String -> LatinSquare
 parse x = let (ss:ls) = lines x
               s = read ss
-              bar l = map baz (take s (l++repeat ' '))
-              baz ' ' = [1..s]
-              baz  x  = [(read [x])]
+              bar l = map possible (take s (l++repeat ' '))
+              possible ' ' = [1..s]
+              possible  x  = [(read [x])]
            in map bar ls
 
 permutations :: [a] -> [[a]]

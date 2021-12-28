@@ -1,0 +1,44 @@
+body {
+   font-size: 18pt;
+}
+
+tr {
+   border: 1px solid black;
+   min-width: 40px;
+   text-align: center;
+}
+
+table {
+/*    border-collapse: collapse;*/
+	border: none;
+}
+
+.towers {
+   border: none;
+   width: 32px;
+}
+
+.fixed {
+   border: 1px solid black;
+   color: green;
+}
+
+.given {
+   border: 1px solid black;
+   color: black;
+}
+
+.crossedout {
+   border: 1px solid black;
+   color: blue;
+   font-size: x-small;
+   text-align: center;
+   text-decoration: line-through
+}
+
+.possible {
+   border: 1px solid black;
+   color: blue;
+   font-size: x-small;
+}
+
