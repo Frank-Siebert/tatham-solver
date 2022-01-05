@@ -5,13 +5,13 @@
   <script type="text/javascript" src="towers.js"></script>
 </head>
 <body>
-<form method="post" action="localhost:3000//towers">
+<form method="post" action="http://localhost:3000/towers">
 <label>board size</label>
-<input type="text" id="boardsize"></input>
+<input type="text" id="boardsize" name="boardsize"></input>
 <input type="button" onclick="createForm()" value="create board for input"></input>
 <table id="inboard">
 </table>
-<input type="submit" value="calculate solution"></input>
+<input type="submit" onclick="submitInput()" value="calculate solution"></input>
 </form>
 <a href="#" onclick="nextStep()">&gt;&gt;&gt;</a>
 <p id="instruction"></p>

@@ -48,6 +48,27 @@ function nextStep() {
    populateBoard(JSON.parse(example));
 }
 
+function submitInput(evt) {
+    evt.preventDefault();
+    var http = new XMLHttpRequest();
+    http.open("POST", "http://localhost:3000/", true);
+    http.setRequestHeader("Content-type","application/json");
+    var params = "boardsize=" + document.getElementById('boardsize'); // probably use document.getElementById(...).value
+    var size = parseInt( document.getElementById('boardsize').value );
+    var htmlBoard = document.getElementById('inboard');
+	for (var y = 0; y<size+2; y++) {
+		for (var x = 0; x<size+2; x++) {
+		    var name = "x"+x+"y"+y;
+		    params +='&'+name+"="+document.getElementById(name).value;
+		}
+	}
+    http.send(params);
+    http.onload = function() {
+        alert(http.responseText);
+    }
+}
+}
+
 function towerCell(text) {
    var t = document.createElement("td");
    t.appendChild(document.createTextNode(text));
@@ -63,7 +84,7 @@ function populateBoard(board) {
        for (let cell of line) {
 	       var td = document.createElement("td");
 		   td.classList.add(cell.klass);
-		   td.appendChild(document.createTextNode(cell.text));
+		   td.appendChild(document.createTextNode(cell.txt));
 		   row.appendChild(td);
        }	   
 	   t = document.createElement("td");
